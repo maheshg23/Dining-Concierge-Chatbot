@@ -1,0 +1,68 @@
+@import url(https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700);
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+body, html {
+  height: 100%;
+}
+
+body {
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 115%;
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+          flex-direction: column;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.chat-output {
+  -webkit-box-flex: 1;
+          flex: 1;
+  padding: 20px;
+  display: -webkit-box;
+  display: flex;
+  background: white;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+          flex-direction: column;
+}
+.chat-output > div {
+  margin: 0 0 20px 0;
+}
+.chat-output .user-message .message {
+  background: #0FB0DF;
+  color: white;
+}
+.chat-output .bot-message {
+  text-align: right;
+}
+.chat-output .bot-message .message {
+  background: #eee;
+}
+.chat-output .message {
+  display: inline-block;
+  padding: 12px 20px;
+  border-radius: 10px;
+}
+
+.chat-input {
+  padding: 20px;
+  background: #eee;
+  border: 1px solid #ccc;
+  border-bottom: 0;
+}
+.chat-input .user-input {
+  width: 100%;
+  font-size: 2rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px;
+}
