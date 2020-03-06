@@ -22,12 +22,8 @@ function chatBotResponse() {
       
       //console.log(result);
       response = result.data.body.message;
-
       console.log(response);
-
-      // shouldScroll = messages.scrollTop + messages.clientHeight === messages.scrollHeight;
       
-      //${response['message']}
       setTimeout(function () {
         outputArea.append(`
           <div class='user-message'>
@@ -37,11 +33,6 @@ function chatBotResponse() {
           </div>
         `);
       }, 250);
-      
-      // if (!shouldScroll) {
-      //   scrollToBottom();
-      // }
-
       resolve("done");
       
     }).catch(function (result) {
@@ -71,13 +62,6 @@ function userMessage() {
 }
 
 //JS Code
-function scrollToBottom() {
-  messages.scrollTop = messages.scrollHeight;
-}
-
-const messages = document.getElementById('chat-output');
-
-//scrollToBottom();
 
 var outputArea = $("#chat-output");
 

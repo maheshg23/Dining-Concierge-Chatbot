@@ -18,9 +18,7 @@ This chatbot can help you provide restaurant suggestions based on your requireme
 
 
 ## SAMPLE UI OF THE WEB APPLICATION
-![alt text](https://github.com/maheshg23/Dining-Concierge-Chatbot/blob/master/images/Frontend_UI1.png)
 ![alt text](https://github.com/maheshg23/Dining-Concierge-Chatbot/blob/master/images/Frontend_UI2.png)
-
 
 
 ## SAMPLE OUTPUT - The user recieves an email of the suggestions :- 
