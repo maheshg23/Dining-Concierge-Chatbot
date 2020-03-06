@@ -1,5 +1,5 @@
 # Dining-Concierge-Chatbot
-##### [Link To Web Application](http://restuarantchatbot.s3-website-us-east-1.amazonaws.com/)
+##### [Link To Web Application](http://restaurant-chatbot.s3-website-us-east-1.amazonaws.com/)
 
 ## ABOUT
 This project is a part of the project component for the course - Cloud Computing and Applications (CS-GY 9223, New York University) 
