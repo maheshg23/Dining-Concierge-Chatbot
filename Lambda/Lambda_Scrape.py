@@ -90,6 +90,20 @@ def query_api(term, location):
         term (str): The search term to query.
         location (str): The location of the business to query.
     """
+    list1 = []
+    list1.append("bID")
+    list1.append("name")
+    list1.append("address")
+    list1.append("cord")
+    list1.append("numOfReview")
+    list1.append("rating")
+    list1.append("zipcode")
+    list1.append("cuisine")
+    filename = "Restaurants"+ '.csv'
+    with open(filename, "a", newline='') as fp:
+        wr = csv.writer(fp, dialect='excel')
+        wr.writerow(list1)
+
     cuisines = ['chinese', 'indian', 'italian', 'japanese', 'mexican', 'thai', 'korean', 'arab', 'american']
     for cuisine in cuisines:
         newterm = cuisine+ ' restaurants'
@@ -116,19 +130,20 @@ def query_api(term, location):
             # print(u'No businesses for {0} in {1} found.'.format(term, location))
             return
 
-        list1 = []
-        list1.append("bID")
-        list1.append("name")
-        list1.append("address")
-        list1.append("cord")
-        list1.append("numOfReview")
-        list1.append("rating")
-        list1.append("zipcode")
-        list1.append("cuisine")
-        filename = cuisine+ '.csv'
-        with open(filename, "a", newline='') as fp:
-                wr = csv.writer(fp, dialect='excel')
-                wr.writerow(list1)
+        # list1 = []
+        # list1.append("bID")
+        # list1.append("name")
+        # list1.append("address")
+        # list1.append("cord")
+        # list1.append("numOfReview")
+        # list1.append("rating")
+        # list1.append("zipcode")
+        # list1.append("cuisine")
+        # filename = cuisine+ '.csv'
+        # with open(filename, "a", newline='') as fp:
+        #         wr = csv.writer(fp, dialect='excel')
+        #         wr.writerow(list1)
+        
         for b in printVar:
             bID = b['id']
             name = b['name']

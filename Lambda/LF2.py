@@ -1,139 +1,121 @@
-import json
 import boto3
-from botocore.exceptions import ClientError
-from elasticsearch import Elasticsearch, RequestsHttpConnection
+import json
+import logging
 from boto3.dynamodb.conditions import Key, Attr
-import random
+from botocore.vendored import requests
+from botocore.exceptions import ClientError
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+def getSQSMsg():
+    SQS = boto3.client("sqs")
+    url = 'https://sqs.us-east-1.amazonaws.com/116488774835/DiningConciergeSQS'
+    response = SQS.receive_message(
+        QueueUrl=url, 
+        AttributeNames=['SentTimestamp'],
+        MessageAttributeNames=['All'],
+        VisibilityTimeout=0,
+        WaitTimeSeconds=0
+    )
+    try:
+        message = response['Messages'][0]
+        if message is None:
+            logger.debug("Empty message")
+            return None
+    except KeyError:
+        logger.debug("No message in the queue")
+        return None
+    message = response['Messages'][0]
+    SQS.delete_message(
+            QueueUrl=url,
+            ReceiptHandle=message['ReceiptHandle']
+        )
+    logger.debug('Received and deleted message: %s' % response)
+    return message
 
 def lambda_handler(event, context):
-    sqsclient = boto3.client('sqs')
-    queue_url = 'https://sqs.us-east-1.amazonaws.com/239255194144/restaurantQueue'
-
-    # Receive message from SQS queue
-    response = sqsclient.receive_message(
-        QueueUrl=queue_url,
-        AttributeNames=[
-            'SequenceNumber'
-        ],
-        MaxNumberOfMessages=1,
-        MessageAttributeNames=[
-            'All'
-        ],
-        VisibilityTimeout=0,
-        WaitTimeSeconds=1
-    )
     
-    if 'Messages' in response:
-        es_endpoint = 'search-restaurants-bpoued5hlvrv4fn74iuqwi7i7y.us-east-1.es.amazonaws.com' 
-        
-        es = Elasticsearch(
-            hosts = [{'host': es_endpoint, 'port': 443}],
-            use_ssl = True,
-            verify_certs = True,
-            connection_class = RequestsHttpConnection
+    """
+        Query SQS to get the messages
+        Store the relevant info, and pass it to the Elastic Search
+    """
+    
+    message = getSQSMsg() #data will be a json object
+    if message is None:
+        logger.debug("No Cuisine or PhoneNum key found in message")
+        return
+    cuisine = message["MessageAttributes"]["Cuisine"]["StringValue"]
+    location = message["MessageAttributes"]["Location"]["StringValue"]
+    date = message["MessageAttributes"]["Date"]["StringValue"]
+    time = message["MessageAttributes"]["Time"]["StringValue"]
+    numOfPeople = message["MessageAttributes"]["NumPeople"]["StringValue"]
+    phoneNumber = message["MessageAttributes"]["PhoneNum"]["StringValue"]
+    phoneNumber = "+1" + phoneNumber
+    if not cuisine or not phoneNumber:
+        logger.debug("No Cuisine or PhoneNum key found in message")
+        return
+    
+    """
+        Query database based on elastic search results
+        Store the relevant info, create the message and sns the info
+    """
+    
+    es_query = "https://search-restaurants-qumtrjtm5mptryh3qjwdelm5be.us-east-1.es.amazonaws.com/_search?q={cuisine}".format(
+        cuisine=cuisine)
+    esResponse = requests.get(es_query)
+    data = json.loads(esResponse.content.decode('utf-8'))
+    try:
+        esData = data["hits"]["hits"]
+    except KeyError:
+        logger.debug("Error extracting hits from ES response")
+    
+    # extract bID from AWS ES
+    ids = []
+    for restaurant in esData:
+        ids.append(restaurant["_source"]["id"])
+    
+    messageToSend = 'Hello! Here are my {cuisine} restaurant suggestions in {location} for {numPeople} people, for {diningDate} at {diningTime}: '.format(
+            cuisine=cuisine,
+            location=location,
+            numPeople=numOfPeople,
+            diningDate=date,
+            diningTime=time,
         )
 
-        dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-        table = dynamodb.Table('yelp-restaurants')
-
-        for message in response['Messages']:
-            receipt_handle = message['ReceiptHandle']
-            req_attributes = message['MessageAttributes']
-            print req_attributes
-
-            # Get the food category from queue message attributes.
-            index_category = req_attributes['Categories']['StringValue']
-
-            searchData = es.search(index="restaurants", body={
-                                        "query": {
-                                        "match": {
-                                        "categories.title": index_category
-                                        }}})
-
-            restaurantIds = []
-            for hit in searchData['hits']['hits']:
-                restaurantIds.append(hit['_source']['id'])
-
-            randomRestaurantIds = random.sample(restaurantIds, k=3)
-
-            getEmailContent = getDynamoDbData(table, req_attributes, randomRestaurantIds)
-            #print "DynamoDB Query ResponseData" + resultData 
-
-            # send the email
-            sendMailToUser(req_attributes, getEmailContent)
-
-            sqsclient.delete_message(
-                QueueUrl=queue_url,
-                ReceiptHandle=receipt_handle
-            )
-            
-            print searchData['hits']['total']
-
-
-    else:
-        return {
-        'statusCode': 500,
-        'body': json.dumps('Error fetching data from the queue.')
-    }
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table('yelp-restaurants')
+    itr = 1
+    for id in ids:
+        if itr == 6:
+            break
+        response = table.scan(FilterExpression=Attr('id').eq(id))
+        item = response['Items'][0]
+        if response is None:
+            continue
+        restaurantMsg = '' + str(itr) + '. '
+        name = item["name"]
+        address = item["address"]
+        restaurantMsg += name +', located at ' + address +'. '
+        messageToSend += restaurantMsg
+        itr += 1
+        
+    messageToSend += "Enjoy your meal!!"
+    
+    try:
+        client = boto3.client('sns', region_name= 'ap-southeast-1')
+        response = client.publish(
+            PhoneNumber=phoneNumber,
+            Message= messageToSend,
+            MessageStructure='string'
+        )
+    except KeyError:
+        logger.debug("Error sending ")
+    logger.debug("response - %s",json.dumps(response) )
+    logger.debug("Message = '%s' Phone Number = %s" % (messageToSend, phoneNumber))
     
     return {
         'statusCode': 200,
-        'body': response
+        'body': json.dumps("LF2 running succesfully")
     }
-
-def getDynamoDbData(table, requestData, businessIds):
-    if len(businessIds) <= 0:
-        return 'We can not find any restaurant under this description, please try again.'
-
-    textString = "Hello! Here are my " + requestData['Categories']['StringValue'] + " restaurant suggestions for " + requestData['PeopleNum']['StringValue'] +" people, for " + requestData['DiningDate']['StringValue'] + " at " + requestData['DiningTime']['StringValue'] + ":"
-    count = 1
-    
-    for business in businessIds:
-        responseData = table.query(KeyConditionExpression=Key('id').eq(business))
-        if responseData and len(responseData['Items']) >= 1:
-            print responseData
-            responseData = responseData['Items'][0]
-            address = responseData['address'] 
-            textString = textString + ", " + str(count) + ". " + str(responseData['name']) + ", located at " + str(address[0]) + " " + str(address[1])
-            count+=1
-    return textString
-
-def sendMailToUser(requestData, content):
-    
-    SENDER = "lolneelsd@gmail.com"
-    RECIPIENT = requestData['EmailId']['StringValue']
-    AWS_REGION = "us-east-1"
-    
-    
-    BODY_TEXT = content   
-    
-    # Create a new SES resource and specify a region.
-    ses = boto3.client('ses',region_name=AWS_REGION)
-    
-    # return true
-    # Try to send the email.
-    try:
-        #Provide the contents of the email.
-        response = ses.send_email(
-            Destination={
-                'ToAddresses': [
-                    RECIPIENT,
-                ],
-            },
-            Message={
-                'Body': {
-                    'Text': {
-                        'Data': json.dumps(BODY_TEXT),
-                    },
-                },
-                'Subject': {
-                    'Data': "Your Dining Suggestions",
-                }
-            },
-            Source=SENDER,
-        )
-    except ClientError as e:
-        print(e.response['Error']['Message'])
-    else:
-        print("Email sent! Message ID:"),
-        print(response['MessageId'])
+    # return messageToSend
