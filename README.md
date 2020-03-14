@@ -22,7 +22,7 @@ This chatbot can help you provide restaurant suggestions based on your requireme
 
 
 ## SAMPLE OUTPUT - The user recieves an email of the suggestions :- 
-![alt text](https://github.com/maheshg23/Dining-Concierge-Chatbot/blob/master/images/the-bot.jpg)
+![alt text](https://github.com/maheshg23/Dining-Concierge-Chatbot/blob/master/images/Message.jpg)
 
  
 
