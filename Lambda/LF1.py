@@ -193,7 +193,6 @@ def validate_dining_suggestion(location, cuisine, time, date, numberOfPeople, ph
 
 def diningSuggestions(intent_request,context):
     
-
     location = get_slots(intent_request)["Location"]
     cuisine = get_slots(intent_request)["Cuisine"]
     date = get_slots(intent_request)["Date"]
