@@ -43,11 +43,8 @@ def request(host, path, api_key, url_params=None):
     headers = {
         'Authorization': 'Bearer %s' % api_key,
     }
-
     print(u'Querying {0} ...'.format(url))
-
     response = requests.request('GET', url, headers=headers, params=url_params)
-
     return response.json()
 
 
@@ -80,7 +77,6 @@ def get_business(api_key, business_id):
         dict: The JSON response from the request.
     """
     business_path = BUSINESS_PATH + business_id
-
     return request(API_HOST, business_path, api_key)
 
 
@@ -104,7 +100,8 @@ def query_api(term, location):
         wr = csv.writer(fp, dialect='excel')
         wr.writerow(list1)
 
-    cuisines = ['chinese', 'indian', 'italian', 'japanese', 'mexican', 'thai', 'korean', 'arab', 'american']
+    # cuisines = ['chinese', 'indian', 'italian', 'japanese', 'mexican', 'thai', 'korean', 'arab', 'american']
+    cuisines = ['chinese', 'indian', 'italian', 'japanese', 'american']
     for cuisine in cuisines:
         newterm = cuisine+ ' restaurants'
         total = getTotal(API_KEY, newterm, location)
